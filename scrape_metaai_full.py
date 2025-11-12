@@ -2,8 +2,8 @@
 """
 scrape_metaai_full.py
 =====================
-Scraper sederhana untuk mengambil data teks, meta tags, gambar, dan video URL (mp4/m3u8) 
-dari halaman publik Meta.ai atau Meta/Facebook post.
+Scraper sederhana untuk mengambil data teks, meta tags, gambar, dan video URL (mp4/m3u8)
+dari halaman publik Meta.ai atau Facebook AI.
 
 Dapat dijalankan lokal maupun otomatis lewat GitHub Actions.
 
@@ -26,6 +26,7 @@ except ImportError:
 
 
 def fetch(url):
+    """Ambil HTML dari URL target."""
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
         "Accept": "text/html",
@@ -37,6 +38,7 @@ def fetch(url):
 
 
 def extract_data(html, base_url):
+    """Ekstraksi data dari HTML."""
     soup = BeautifulSoup(html, "html.parser")
 
     data = {
@@ -46,25 +48,30 @@ def extract_data(html, base_url):
         "videos": [],
     }
 
+    # ambil meta tags
     for meta in soup.find_all("meta"):
         k = meta.get("property") or meta.get("name")
         v = meta.get("content")
         if k and v:
             data["metas"][k] = v
 
+    # ambil semua gambar
     for img in soup.find_all("img"):
         src = img.get("src")
         if src:
             data["images"].append(urljoin(base_url, src))
 
+    # ambil elemen video / iframe
     for tag in soup.find_all(["video", "source", "iframe"]):
         src = tag.get("src") or tag.get("data-src")
         if src:
             data["videos"].append(urljoin(base_url, src))
 
-data["videos"] += re.findall(r"https?://[^\s\"'<>]+\.mp4[^\s\"'<>]*", html)
-data["videos"] += re.findall(r"https?://[^\s\"'<>]+\.m3u8[^\s\"'<>]*", html)
+    # cari pola URL video (mp4 / m3u8) langsung dari HTML mentah
+    data["videos"] += re.findall(r"https?://[^\s\"'<>]+\.mp4[^\s\"'<>]*", html)
+    data["videos"] += re.findall(r"https?://[^\s\"'<>]+\.m3u8[^\s\"'<>]*", html)
 
+    # hapus duplikat & urutkan
     data["images"] = sorted(set(data["images"]))
     data["videos"] = sorted(set(data["videos"]))
 
@@ -85,6 +92,7 @@ def main():
 
     data = extract_data(html, url)
 
+    # simpan hasil ke file output.json
     with open("output.json", "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2, ensure_ascii=False)
 
