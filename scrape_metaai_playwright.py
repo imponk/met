@@ -2,7 +2,7 @@
 """
 scrape_metaai_playwright.py
 ===========================
-Versi Playwright — untuk mengambil URL video (mp4/m3u8) dari halaman Meta.ai
+Versi Playwright (diperbaiki) — untuk mengambil URL video (mp4/m3u8) dari Meta.ai
 """
 
 import sys
@@ -15,18 +15,26 @@ from playwright.async_api import async_playwright
 
 async def scrape_meta(url):
     data = {"url": url, "title": "", "metas": {}, "images": [], "videos": []}
+    collected_videos = set()
 
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        page = await browser.new_page()
+        context = await browser.new_context()
+        page = await context.new_page()
+
+        # Event listener untuk setiap request
+        page.on("request", lambda req: (
+            collected_videos.add(req.url)
+            if any(ext in req.url for ext in [".mp4", ".m3u8"])
+            else None
+        ))
+
         print(f"🔍 Membuka halaman: {url}")
         await page.goto(url, wait_until="networkidle")
 
-        # ambil HTML setelah JavaScript selesai
         html = await page.content()
         soup = BeautifulSoup(html, "html.parser")
 
-        # judul & meta tags
         data["title"] = soup.title.string.strip() if soup.title else ""
         for meta in soup.find_all("meta"):
             k = meta.get("property") or meta.get("name")
@@ -34,20 +42,14 @@ async def scrape_meta(url):
             if k and v:
                 data["metas"][k] = v
 
-        # ambil semua <img>
         for img in soup.find_all("img"):
             src = img.get("src")
             if src:
                 data["images"].append(urljoin(url, src))
 
-        # ambil semua permintaan (request) di network log
-        videos = set()
-        for req in page.context.requests:
-            if any(ext in req.url for ext in [".mp4", ".m3u8"]):
-                videos.add(req.url)
-
-        data["videos"] = sorted(videos)
+        data["videos"] = sorted(collected_videos)
         await browser.close()
+
         return data
 
 
