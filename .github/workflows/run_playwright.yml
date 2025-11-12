@@ -1,9 +1,16 @@
-name: MetaAI HTML Video Scraper
+name: MetaAI Video Downloader (Auto Trigger)
 
 on:
+  # ✅ Jalankan otomatis setiap kali urls.txt diubah atau ada commit baru
+  push:
+    paths:
+      - 'urls.txt'
+      - '.github/workflows/run_scraper.yml'  # juga jalan kalau workflow diperbarui
+  # ✅ Bisa juga dijalankan manual dari tab Actions
   workflow_dispatch:
+  # ✅ Jadwal harian tambahan (opsional)
   schedule:
-    - cron: "0 7 * * *"  # otomatis tiap hari jam 07:00 UTC
+    - cron: "0 7 * * *"  # jam 07:00 UTC setiap hari
 
 jobs:
   scrape:
@@ -18,7 +25,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies & ffmpeg
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
@@ -26,24 +33,25 @@ jobs:
           pip install playwright beautifulsoup4
           playwright install chromium
 
-      - name: Clean previous outputs
+      - name: Clean old downloads
         run: |
-          echo "Cleaning old outputs..."
-          rm -rf downloads output_htmlvideo.json || true
+          echo "🧹 Menghapus folder downloads lama..."
+          rm -rf downloads output_playwright.json || true
+          mkdir -p downloads
 
-      - name: Run scraper (HTML video)
-        run: python scrape_metaai_html_revised.py
+      - name: Run MetaAI scraper
+        run: python scrape_metaai_final.py
 
-      - name: Debug output folder
+      - name: Debug output
         run: |
-          echo "=== File yang ditemukan ==="
-          ls -R downloads || true
-          ls -l output*.json || true
+          echo "=== Daftar hasil unduhan ==="
+          ls -lh downloads || true
+          ls -lh *.json || true
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-htmlvideo-output
+          name: metaai-final-output
           path: |
-            output_htmlvideo.json
             downloads/
+            output_playwright.json
