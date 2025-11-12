@@ -1,13 +1,13 @@
-name: MetaAI Video Downloader (Auto Trigger)
+name: MetaAI Parallel Video Downloader
 
 on:
   push:
     paths:
       - 'urls.txt'
-      - '.github/workflows/run_scraper.yml'
+      - '.github/workflows/run_parallel_scraper.yml'
   workflow_dispatch:
   schedule:
-    - cron: "0 7 * * *"
+    - cron: "0 6 * * *"
 
 jobs:
   scrape:
@@ -35,13 +35,13 @@ jobs:
           rm -rf downloads output_playwright.json || true
           mkdir -p downloads
 
-      - name: Run MetaAI scraper
-        run: python scrape_metaai_final.py
+      - name: Run MetaAI scraper (Parallel)
+        run: python scrape_metaai_parallel.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-final-output
+          name: metaai-parallel-output
           path: |
             downloads/
             output_playwright.json
