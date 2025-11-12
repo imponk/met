@@ -1,19 +1,31 @@
 name: Run MetaAI Scraper
+
 on:
-  workflow_dispatch:
+  workflow_dispatch:  # bisa dijalankan manual lewat tab Actions
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: |
+
+      - name: Install dependencies
+        run: |
           python -m pip install --upgrade pip
           pip install requests beautifulsoup4
+
+      - name: Run scraper
+        run: |
           python scrape_metaai_full.py "https://meta.ai/@rizkyfollower/post/wS3QkRepKnE/muda-cantik-dan-menawan/"
-      - uses: actions/upload-artifact@v4
+
+      - name: Upload result
+        uses: actions/upload-artifact@v4
         with:
           name: metaai-scraper-output
           path: output.json
