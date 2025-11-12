@@ -62,8 +62,8 @@ def extract_data(html, base_url):
         if src:
             data["videos"].append(urljoin(base_url, src))
 
-    data["videos"] += re.findall(r'https?://[^\s"'<>]+\.mp4[^\s"'<>]*', html)
-    data["videos"] += re.findall(r'https?://[^\s"'<>]+\.m3u8[^\s"'<>]*', html)
+data["videos"] += re.findall(r"https?://[^\s\"'<>]+\.mp4[^\s\"'<>]*", html)
+data["videos"] += re.findall(r"https?://[^\s\"'<>]+\.m3u8[^\s\"'<>]*", html)
 
     data["images"] = sorted(set(data["images"]))
     data["videos"] = sorted(set(data["videos"]))
