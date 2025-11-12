@@ -11,12 +11,44 @@ DOWNLOAD_DIR = "downloads"
 OUTPUT_FILE = "output_playwright.json"
 URL_FILE = "urls.txt"
 
+
 def sanitize_filename(name: str):
     return "".join(c for c in name if c.isalnum() or c in (" ", "_", "-")).strip()
+
+
+def get_media_type(path):
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_streams", "-select_streams", "a:v", path],
+            capture_output=True, text=True
+        )
+        if "codec_type=video" in result.stdout and "codec_type=audio" in result.stdout:
+            return "av"
+        elif "codec_type=video" in result.stdout:
+            return "video"
+        elif "codec_type=audio" in result.stdout:
+            return "audio"
+    except Exception:
+        pass
+    return "unknown"
+
+
+def get_duration(path):
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries", "format=duration",
+             "-of", "default=noprint_wrappers=1:nokey=1", path],
+            capture_output=True, text=True
+        )
+        return float(result.stdout.strip())
+    except Exception:
+        return 0.0
+
 
 async def scrape_meta(page, url):
     data = {"url": url, "title": "", "metas": {}, "images": [], "videos": []}
     collected_videos = set()
+
     page.on("request", lambda req: (
         collected_videos.add(req.url)
         if any(ext in req.url for ext in [".mp4", ".m3u8"])
@@ -44,6 +76,7 @@ async def scrape_meta(page, url):
 
     data["videos"] = sorted(collected_videos)
     return data
+
 
 async def main():
     os.makedirs(DOWNLOAD_DIR, exist_ok=True)
@@ -79,14 +112,24 @@ async def main():
                 except Exception as e:
                     print(f"⚠️ Gagal unduh {vurl}: {e}")
 
-            # Gabungkan audio + video
-            if len(video_files) >= 2:
+            audio_tracks, video_tracks = [], []
+            for vf in video_files:
+                mtype = get_media_type(vf)
+                if mtype == "audio":
+                    audio_tracks.append(vf)
+                elif mtype == "video":
+                    video_tracks.append(vf)
+
+            print(f"🎬 Deteksi {len(video_tracks)} video-only, {len(audio_tracks)} audio-only")
+
+            if video_tracks and audio_tracks:
                 merged = os.path.join(DOWNLOAD_DIR, f"{safe_title}_merged.mp4")
-                print(f"🎞️ Menggabungkan jadi {merged}")
+                v = video_tracks[0]
+                a = min(audio_tracks, key=lambda x: abs(get_duration(x) - get_duration(v)))
+                print(f"🔗 Menggabungkan: {os.path.basename(v)} + {os.path.basename(a)} -> {merged}")
                 try:
                     subprocess.run(
-                        ["ffmpeg", "-y", "-i", video_files[0], "-i", video_files[1],
-                         "-c:v", "copy", "-c:a", "aac", merged],
+                        ["ffmpeg", "-y", "-i", v, "-i", a, "-c:v", "copy", "-c:a", "aac", merged],
                         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                     )
                 except Exception as e:
@@ -98,6 +141,7 @@ async def main():
         json.dump(all_data, f, indent=2, ensure_ascii=False)
 
     print(f"✅ Selesai! Lihat folder {DOWNLOAD_DIR}/ untuk hasil gabungan.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
