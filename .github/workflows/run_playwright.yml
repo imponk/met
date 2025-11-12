@@ -1,4 +1,4 @@
-name: MetaAI Auto Scraper with Merge & Clean
+name: MetaAI Smart Scraper with Smart Merge & Clean
 
 on:
   workflow_dispatch:
@@ -30,13 +30,13 @@ jobs:
           echo "🧹 Menghapus file lama..."
           rm -rf downloads output_playwright.json || true
 
-      - name: Run scraper and merge
-        run: python scrape_metaai_merge.py
+      - name: Run scraper with smart merger
+        run: python scrape_metaai_smartmerge.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-merged-output
+          name: metaai-smartmerge-output
           path: |
             output_playwright.json
             downloads/
