@@ -30,8 +30,8 @@ jobs:
           echo "🧹 Cleaning old outputs..."
           rm -rf downloads output_playwright.json || true
 
-      - name: Run scraper (video-only best)
-        run: python scrape_metaai_videoonly_best.py
+ - name: Run scraper (video HTML revised)
+  run: python scrape_metaai_html_revised.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
