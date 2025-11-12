@@ -26,10 +26,11 @@ def contains_video_stream(path: str) -> bool:
         )
         return "video" in result.stdout
     except Exception:
-        return True
+        return True  # fallback, dianggap video
 
 
 async def scrape_one(context, url: str):
+    """Scrape satu halaman Meta.ai"""
     data = {
         "url": url,
         "title": "",
@@ -42,12 +43,21 @@ async def scrape_one(context, url: str):
     page = await context.new_page()
     print(f"🔍 Membuka: {url}")
     await page.goto(url, wait_until="networkidle")
-    await page.wait_for_timeout(5000)
 
+    # Tunggu sampai elemen video muncul (maks 10 detik)
+    try:
+        await page.wait_for_selector("video, source", timeout=10000)
+    except:
+        print("⚠️ Tidak ada elemen <video> atau <source> setelah 10 detik.")
+
+    # Tambah waktu sedikit untuk load konten dinamis
+    await page.wait_for_timeout(2000)
+
+    # Ambil isi HTML setelah elemen video muncul
     html = await page.content()
     soup = BeautifulSoup(html, "html.parser")
 
-    # Judul dan meta
+    # Ambil judul dan meta
     data["title"] = soup.title.string.strip() if soup.title else "MetaAI"
     for meta in soup.find_all("meta"):
         k = meta.get("property") or meta.get("name")
@@ -55,35 +65,41 @@ async def scrape_one(context, url: str):
         if k and v:
             data["metas"][k] = v
 
-    # Ambil semua gambar (opsional)
+    # Ambil gambar (opsional)
     for img in soup.find_all("img"):
         src = img.get("src")
         if src:
             data["images"].append(urljoin(url, src))
 
-    # 🎯 Ambil langsung video dari <video> dan <source>
+    # Ambil video dari tag <video> dan <source>
     videos = []
     for tag in soup.find_all(["video", "source"]):
-        src = tag.get("src")
+        src = tag.get("src") or tag.get("data-src") or tag.get("srcset")
         if src and ".mp4" in src:
-            videos.append(urljoin(url, src))
+            full_url = urljoin(url, src)
+            videos.append(full_url)
+            print(f"🎥 Ditemukan: {full_url}")
+
     data["videos"] = sorted(set(videos))
 
-    # Ambil hanya video pertama (paling relevan di HTML)
+    # Unduh hanya 1 video pertama
     if data["videos"]:
         best = data["videos"][0]
-        print(f"⬇️ Mengunduh video utama: {best}")
         safe_title = sanitize_filename(data["title"])
         filename = os.path.join(DOWNLOAD_DIR, f"{safe_title}.mp4")
+        print(f"⬇️ Mengunduh video utama: {best}")
+
         try:
             resp = await context.request.get(best)
             if resp.ok:
                 with open(filename, "wb") as f:
                     f.write(await resp.body())
+
                 if contains_video_stream(filename):
                     data["saved_path"] = filename
+                    print(f"✅ Tersimpan: {filename}")
                 else:
-                    print("🗑️ File tidak mengandung stream video. Menghapus.")
+                    print(f"🗑️ {filename} tidak mengandung stream video, dihapus.")
                     os.remove(filename)
                     data["saved_path"] = None
             else:
@@ -91,7 +107,7 @@ async def scrape_one(context, url: str):
         except Exception as e:
             print(f"⚠️ Error saat unduh: {e}")
     else:
-        print("⚠️ Tidak ditemukan tag <video> atau <source> di halaman.")
+        print("⚠️ Tidak ditemukan video yang valid di halaman.")
 
     await page.close()
     return data
@@ -121,10 +137,15 @@ async def main():
 
         await browser.close()
 
+    # Simpan hasil JSON
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
 
     print(f"✅ Selesai! Hasil tersimpan di {OUTPUT_FILE}")
+
+    # Debug tampilan isi folder downloads
+    print("\n📂 Daftar isi folder downloads:")
+    os.system("ls -lh downloads || true")
 
 
 if __name__ == "__main__":
