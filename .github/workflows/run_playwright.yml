@@ -1,7 +1,7 @@
-name: Run MetaAI Scraper
+name: Run MetaAI Video Scraper
 
 on:
-  workflow_dispatch:  # bisa dijalankan manual lewat tab Actions
+  workflow_dispatch:  # bisa dijalankan manual dari tab Actions
 
 jobs:
   scrape:
@@ -18,15 +18,15 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install requests beautifulsoup4
+          pip install -r requirements.txt
+          playwright install chromium
 
       - name: Run scraper
         run: |
-          python scrape_metaai_full.py "https://meta.ai/@rizkyfollower/post/wS3QkRepKnE/muda-cantik-dan-menawan/"
+          python scrape_metaai_playwright.py "https://meta.ai/@rizkyfollower/post/wS3QkRepKnE/muda-cantik-dan-menawan/"
 
       - name: Upload result
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-scraper-output
-          path: output.json
-
+          name: metaai-video-scraper-output
+          path: output_playwright.json
