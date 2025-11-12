@@ -1,9 +1,9 @@
 name: Run MetaAI Scraper
 
 on:
-  workflow_dispatch:
+  workflow_dispatch:   # Bisa dijalankan manual dari tab Actions
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 3 * * *"  # Jalan otomatis setiap jam 3 pagi UTC (10 pagi WIB)
 
 jobs:
   scrape:
@@ -24,7 +24,7 @@ jobs:
 
       - name: Run scraper
         run: |
-          python scrape_metaai_full.py "https://www.meta.ai/@sujarwo_ko/post/vZ7tVs6wFiR/tentram-rasanya-jika-tinggal-di-sinialamdesa/"
+          python scrape_metaai_full.py "https://meta.ai/@rizkyfollower/post/wS3QkRepKnE/muda-cantik-dan-menawan/"
 
       - name: Upload result
         uses: actions/upload-artifact@v4
