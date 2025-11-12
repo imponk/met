@@ -1,9 +1,9 @@
-name: MetaAI Auto Scraper
+name: MetaAI Auto Scraper with Merge & Clean
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 7 * * *"  # otomatis tiap hari jam 07:00 UTC
+    - cron: "0 7 * * *"  # run otomatis jam 07:00 UTC
 
 jobs:
   scrape:
@@ -17,19 +17,26 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies
+      - name: Install dependencies and ffmpeg
         run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           playwright install chromium
 
-      - name: Run scraper
-        run: python scrape_metaai_auto.py
+      - name: Bersihkan file lama sebelum scraping
+        run: |
+          echo "🧹 Menghapus file lama..."
+          rm -rf downloads output_playwright.json || true
+
+      - name: Run scraper and merge
+        run: python scrape_metaai_merge.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-auto-output
+          name: metaai-merged-output
           path: |
             output_playwright.json
             downloads/
