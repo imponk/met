@@ -1,21 +1,17 @@
 name: MetaAI Video Downloader (Auto Trigger)
 
 on:
-  # ✅ Jalankan otomatis setiap kali urls.txt diubah atau ada commit baru
   push:
     paths:
       - 'urls.txt'
-      - '.github/workflows/run_scraper.yml'  # juga jalan kalau workflow diperbarui
-  # ✅ Bisa juga dijalankan manual dari tab Actions
+      - '.github/workflows/run_scraper.yml'
   workflow_dispatch:
-  # ✅ Jadwal harian tambahan (opsional)
   schedule:
-    - cron: "0 7 * * *"  # jam 07:00 UTC setiap hari
+    - cron: "0 7 * * *"
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -41,12 +37,6 @@ jobs:
 
       - name: Run MetaAI scraper
         run: python scrape_metaai_final.py
-
-      - name: Debug output
-        run: |
-          echo "=== Daftar hasil unduhan ==="
-          ls -lh downloads || true
-          ls -lh *.json || true
 
       - name: Upload results
         uses: actions/upload-artifact@v4
