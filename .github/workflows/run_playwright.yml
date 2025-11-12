@@ -1,9 +1,9 @@
-name: MetaAI Smart Scraper with Smart Merge & Clean
+name: MetaAI VideoOnly (Best) — Clean & Auto
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 7 * * *"  # run otomatis jam 07:00 UTC
+    - cron: "0 7 * * *"
 
 jobs:
   scrape:
@@ -17,7 +17,7 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies and ffmpeg
+      - name: Install dependencies & ffmpeg
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
@@ -25,18 +25,18 @@ jobs:
           pip install -r requirements.txt
           playwright install chromium
 
-      - name: Bersihkan file lama sebelum scraping
+      - name: Clean previous outputs
         run: |
-          echo "🧹 Menghapus file lama..."
+          echo "🧹 Cleaning old outputs..."
           rm -rf downloads output_playwright.json || true
 
-      - name: Run scraper with smart merger
-        run: python scrape_metaai_smartmerge.py
+      - name: Run scraper (video-only best)
+        run: python scrape_metaai_videoonly_best.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-smartmerge-output
+          name: metaai-videoonly-best-output
           path: |
             output_playwright.json
             downloads/
