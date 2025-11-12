@@ -52,9 +52,14 @@ async def scrape_one(context, url):
     data["videos"] = sorted(collected)
     best = await pick_best_video(data["videos"])
     data["picked_video"] = best
+
     if best:
         safe_title = sanitize_filename(data["title"])
         filename = os.path.join(DOWNLOAD_DIR, f"{safe_title}.mp4")
+        if os.path.exists(filename):
+            print(f"📁 Skip {filename}, sudah ada.")
+            data["saved_path"] = filename
+            return data
         print(f"⬇️ Mengunduh: {best}")
         try:
             resp = await context.request.get(best)
@@ -72,7 +77,7 @@ async def scrape_one(context, url):
         except Exception as e:
             print(f"⚠️ Error unduh: {e}")
     else:
-        print("⚠️ Tidak ada file .mp4 ditemukan.")
+        print("⚠️ Tidak ada file video .mp4 ditemukan.")
     await page.close()
     return data
 
@@ -84,18 +89,24 @@ async def main():
         return
     urls = [u.strip() for u in open(URL_FILE, "r", encoding="utf-8") if u.strip()]
     results = []
+
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         context = await browser.new_context()
-        for u in urls:
+
+        async def process_url(u):
             try:
                 r = await scrape_one(context, u)
                 results.append(r)
             except Exception as e:
                 print(f"❌ Gagal memproses {u}: {e}")
+
+        await asyncio.gather(*(process_url(u) for u in urls))
         await browser.close()
+
     with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
+
     print("🎯 Selesai! Semua video tersimpan di folder downloads/.")
 
 
