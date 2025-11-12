@@ -1,7 +1,9 @@
-name: Run MetaAI Video Scraper
+name: MetaAI Auto Scraper
 
 on:
-  workflow_dispatch:  # bisa dijalankan manual dari tab Actions
+  workflow_dispatch:
+  schedule:
+    - cron: "0 7 * * *"  # otomatis tiap hari jam 07:00 UTC
 
 jobs:
   scrape:
@@ -22,11 +24,12 @@ jobs:
           playwright install chromium
 
       - name: Run scraper
-        run: |
-          python scrape_metaai_playwright.py "https://meta.ai/@rizkyfollower/post/wS3QkRepKnE/muda-cantik-dan-menawan/"
+        run: python scrape_metaai_auto.py
 
-      - name: Upload result
+      - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-video-scraper-output
-          path: output_playwright.json
+          name: metaai-auto-output
+          path: |
+            output_playwright.json
+            downloads/
