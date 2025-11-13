@@ -1,47 +1,46 @@
-name: MetaAI Parallel Video Downloader
+name: Run MetaAI Scraper (User + Parallel)
 
 on:
   push:
     paths:
-      - 'urls.txt'
-      - '.github/workflows/run_parallel_scraper.yml'
-  workflow_dispatch:
-  schedule:
-    - cron: "0 6 * * *"
+      - "urls.txt"         # otomatis run ketika urls.txt diedit
+  workflow_dispatch:        # bisa run manual juga
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v4
         with:
           python-version: "3.11"
 
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          pip install playwright beautifulsoup4
-          playwright install chromium
+          pip install -r requirements.txt
 
-      - name: Clean old downloads
+      - name: Install Playwright browsers
         run: |
-          echo "🧹 Menghapus folder downloads lama..."
-          rm -rf downloads output_playwright.json || true
-          mkdir -p downloads
+          python -m playwright install chromium
 
-      - name: Run MetaAI scraper (Parallel)
-        run: python scrape_metaai_user_parallel.py
+      - name: List repository files (debug)
+        run: |
+          echo "=== Current dir ==="
+          pwd
+          echo "=== Files ==="
+          ls -R
+
+      - name: Run MetaAI Scraper (User + Parallel)
+        run: |
+          python scrape_metaai_user_parallel.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-parallel-output
-          path: |
-            downloads/
-            output_playwright.json
+          name: metaai-user-parallel-output
+          path: downloads/
