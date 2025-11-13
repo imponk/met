@@ -1,2 +1,5 @@
 playwright
-beautifulsoup4
+bs4
+aiofiles
+aiohttp
+lxml
