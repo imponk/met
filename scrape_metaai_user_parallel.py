@@ -2,7 +2,6 @@ import asyncio
 import os
 import re
 import json
-import aiofiles
 from bs4 import BeautifulSoup
 from playwright.async_api import async_playwright
 
@@ -100,32 +99,53 @@ async def extract_best_video(context, post_url):
     print(f"🎯 Video terbaik ditemukan:\n{best}\n")
     return best
 
+async def download_video(context, video_url, filename, referer):
+    """Download MP4 via Playwright context (bawa cookie & header), hindari Bad URL hash."""
+    try:
+        resp = await context.request.get(
+            video_url,
+            headers={
+                "referer": referer,
+                "user-agent": (
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) "
+                    "Chrome/119.0 Safari/537.36"
+                ),
+            },
+            timeout=60000,
+        )
 
-async def download_video(url, filename):
-    """Download MP4"""
-    import aiohttp
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as resp:
-            if resp.status != 200:
-                print(f"⚠️ Gagal download {url}")
-                return
-            data = await resp.read()
-            async with aiofiles.open(filename, "wb") as f:
-                await f.write(data)
-            print(f"💾 Disimpan: {filename}")
+        if not resp.ok:
+            print(f"⚠️ Gagal download {video_url}, status={resp.status}")
+            return False
 
+        content_type = resp.headers.get("content-type", "")
+        body = await resp.body()
+
+        # Kalau content-type bukan video dan body mengandung 'Bad URL hash', jangan disimpan
+        if "video" not in content_type.lower() and b"Bad URL hash" in body:
+            print("❌ Server mengembalikan 'Bad URL hash' (URL ditolak CDN).")
+            return False
+
+        with open(filename, "wb") as f:
+            f.write(body)
+
+        print(f"💾 Disimpan: {filename}")
+        return True
+
+    except Exception as e:
+        print(f"❌ Error download {video_url}: {e}")
+        return False
 
 async def process_post(context, post_url):
     best_video = await extract_best_video(context, post_url)
 
     out_json = os.path.join(DOWNLOAD_DIR, "output_playwright.json")
-
     data_entry = {
         "post_url": post_url,
         "video": best_video
     }
 
-    # append ke json list
     if not os.path.exists(out_json):
         json.dump([data_entry], open(out_json, "w"), indent=2)
     else:
@@ -136,8 +156,9 @@ async def process_post(context, post_url):
     if best_video:
         safe_name = re.sub(r"[^a-zA-Z0-9_-]", "_", post_url)
         file_path = os.path.join(DOWNLOAD_DIR, f"{safe_name}.mp4")
-        await download_video(best_video, file_path)
-
+        ok = await download_video(context, best_video, file_path, referer=post_url)
+        if not ok:
+            print(f"⚠️ Download gagal / Bad URL hash untuk: {post_url}")
 
 async def main():
     urls = []
