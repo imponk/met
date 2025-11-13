@@ -1,3 +1,2 @@
 playwright
-bs4
-lxml
+beautifulsoup4
