@@ -1,6 +1,10 @@
-name: MetaAI VideoOnly (Best) — Clean & Auto
+name: MetaAI Video Downloader (Auto Trigger)
 
 on:
+  push:
+    paths:
+      - 'urls.txt'
+      - '.github/workflows/run_scraper.yml'
   workflow_dispatch:
   schedule:
     - cron: "0 7 * * *"
@@ -17,26 +21,27 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install dependencies & ffmpeg
+      - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y ffmpeg
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install playwright beautifulsoup4
           playwright install chromium
 
-      - name: Clean previous outputs
+      - name: Clean old downloads
         run: |
-          echo "🧹 Cleaning old outputs..."
+          echo "🧹 Menghapus folder downloads lama..."
           rm -rf downloads output_playwright.json || true
+          mkdir -p downloads
 
-      - name: Run scraper (video-only best)
-        run: python scrape_metaai_videoonly_best.py
+      - name: Run MetaAI scraper
+        run: python scrape_metaai_final.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
         with:
-          name: metaai-videoonly-best-output
+          name: metaai-final-output
           path: |
-            output_playwright.json
             downloads/
+            output_playwright.json
