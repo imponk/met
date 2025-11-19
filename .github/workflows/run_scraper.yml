@@ -36,7 +36,7 @@ jobs:
           mkdir -p downloads
 
       - name: Run MetaAI scraper
-        run: python scrape_metaai_final.py
+        run: python scrape_metaai_smartmerge.py
 
       - name: Upload results
         uses: actions/upload-artifact@v4
